@@ -1,0 +1,20 @@
+@baseUrl = http://localhost:3000
+
+# @name addNewCategories
+POST  {{baseUrl}}/auth/local/register
+Content-Type: application/json
+
+{
+
+"email": "thinhluong@gmail.com", 
+"username": "thinhluong@gmail.com", 
+"password": "123123", 
+"fullName": "Thinh Luong"
+}
+
+###
+# @name getNewCategories
+GET   {{baseUrl}}/users
+Content-Type: application/json
+
+
