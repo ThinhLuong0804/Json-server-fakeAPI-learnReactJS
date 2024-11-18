@@ -131,7 +131,9 @@ server.get("/user/me", authenticateToken, (req, res) => {
 
 // API phân trang
 server.get("/products", (req, res) => {
-  const { page = 1, limit = 10, categoryId } = req.query;
+  const page = parseInt(req.query._page, 10) || 1; // Chuyển page thành số nguyên
+  const limit = parseInt(req.query._limit, 10) || 10; // Chuyển limit thành số nguyên
+  const categoryId = req.query.categoryId;
 
   const products = router.db.get("products").value(); // Lấy tất cả sản phẩm
   let filteredProducts = products;
@@ -153,8 +155,8 @@ server.get("/products", (req, res) => {
     data: paginatedProducts,
     pagination: {
       total,
-      page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
+      page,
+      limit,
     },
   });
 });
@@ -164,7 +166,7 @@ server.get("/products/:id", (req, res) => {
   const { id } = req.params;
   const product = router.db
     .get("products")
-    .find({ id: parseInt(id, 10) })
+    .find({ id: parseInt(id, 10) }) // Chuyển id sang số nguyên để so sánh
     .value();
 
   if (!product) {
@@ -183,9 +185,10 @@ server.get("/categories", (req, res) => {
 // Lấy sản phẩm theo danh mục
 server.get("/categories/:id/products", (req, res) => {
   const { id } = req.params;
+  const categoryId = parseInt(id, 10); // Chuyển id danh mục sang số nguyên
   const products = router.db
     .get("products")
-    .filter((product) => product.categoryId === id)
+    .filter((product) => product.categoryId === categoryId) // Lọc theo categoryId
     .value();
 
   if (products.length === 0) {
