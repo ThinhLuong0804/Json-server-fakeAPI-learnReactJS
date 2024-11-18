@@ -129,6 +129,74 @@ server.get("/user/me", authenticateToken, (req, res) => {
   res.json(currentUser);
 });
 
+// API phân trang
+server.get("/products", (req, res) => {
+  const { page = 1, limit = 10, categoryId } = req.query;
+
+  const products = router.db.get("products").value(); // Lấy tất cả sản phẩm
+  let filteredProducts = products;
+
+  // Nếu có tham số categoryId, lọc theo categoryId
+  if (categoryId) {
+    filteredProducts = products.filter(
+      (product) => product.categoryId === categoryId
+    );
+  }
+
+  const total = filteredProducts.length;
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + parseInt(limit, 10);
+
+  const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
+  res.json({
+    data: paginatedProducts,
+    pagination: {
+      total,
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+    },
+  });
+});
+
+// Lấy chi tiết sản phẩm
+server.get("/products/:id", (req, res) => {
+  const { id } = req.params;
+  const product = router.db
+    .get("products")
+    .find({ id: parseInt(id, 10) })
+    .value();
+
+  if (!product) {
+    return res.status(404).json({ message: "Product not found" });
+  }
+
+  res.json(product);
+});
+
+// Lấy danh sách danh mục sảnh phẩm
+server.get("/categories", (req, res) => {
+  const categories = router.db.get("categories").value();
+  res.json(categories);
+});
+
+// Lấy sản phẩm theo danh mục
+server.get("/categories/:id/products", (req, res) => {
+  const { id } = req.params;
+  const products = router.db
+    .get("products")
+    .filter((product) => product.categoryId === id)
+    .value();
+
+  if (products.length === 0) {
+    return res
+      .status(404)
+      .json({ message: "No products found in this category" });
+  }
+
+  res.json(products);
+});
+
 server.use(router);
 
 server.listen(3000, () => {
