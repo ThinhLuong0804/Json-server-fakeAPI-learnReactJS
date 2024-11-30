@@ -129,36 +129,70 @@ server.get("/user/me", authenticateToken, (req, res) => {
   res.json(currentUser);
 });
 
-// API phân trang
+// API phân trang và sắp xếp sản phẩm
 server.get("/products", (req, res) => {
   const page = parseInt(req.query._page, 10) || 1; // Chuyển page thành số nguyên
   const limit = parseInt(req.query._limit, 10) || 10; // Chuyển limit thành số nguyên
-  const categoryId = req.query.categoryId;
+  const sortField = req.query._sort || "id"; // Trường để sắp xếp, mặc định là "id"
+  const sortOrder = req.query._order === "DESC" ? -1 : 1; // Thứ tự sắp xếp (ASC/DESC)
+  const categoryId = req.query.categoryId || null; // Lọc theo categoryId
 
-  const products = router.db.get("products").value(); // Lấy tất cả sản phẩm
-  let filteredProducts = products;
+  // Lọc theo giá
+  const filters = {
+    salePrice_gte: isNaN(parseFloat(req.query.salePrice_gte))
+      ? 0
+      : parseFloat(req.query.salePrice_gte),
+    salePrice_lte: isNaN(parseFloat(req.query.salePrice_lte))
+      ? Infinity
+      : parseFloat(req.query.salePrice_lte),
+  };
 
-  // Nếu có tham số categoryId, lọc theo categoryId
-  if (categoryId) {
-    filteredProducts = products.filter(
-      (product) => product.categoryId === categoryId
-    );
+  try {
+    let products = router.db.get("products").value(); // Lấy tất cả sản phẩm
+
+    // Nếu có tham số categoryId, lọc sản phẩm theo categoryId
+    if (categoryId) {
+      products = products.filter(
+        (product) => product.categoryId === categoryId
+      );
+    }
+
+    // Lọc sản phẩm theo giá
+    products = products.filter((product) => {
+      const isPriceInRange =
+        product.salePrice >= filters.salePrice_gte &&
+        product.salePrice <= filters.salePrice_lte;
+      return isPriceInRange;
+    });
+
+    // Sắp xếp sản phẩm nếu có tham số _sort
+    if (sortField) {
+      products.sort((a, b) => {
+        if (a[sortField] < b[sortField]) return -1 * sortOrder;
+        if (a[sortField] > b[sortField]) return 1 * sortOrder;
+        return 0;
+      });
+    }
+
+    // Tính toán phân trang
+    const total = products.length;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedProducts = products.slice(startIndex, endIndex);
+
+    res.json({
+      data: paginatedProducts,
+      pagination: {
+        total,
+        page,
+        limit,
+      },
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
   }
-
-  const total = filteredProducts.length;
-  const startIndex = (page - 1) * limit;
-  const endIndex = startIndex + parseInt(limit, 10);
-
-  const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
-
-  res.json({
-    data: paginatedProducts,
-    pagination: {
-      total,
-      page,
-      limit,
-    },
-  });
 });
 
 // Lấy chi tiết sản phẩm
