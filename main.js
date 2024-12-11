@@ -165,6 +165,22 @@ server.get("/products", (req, res) => {
       return isPriceInRange;
     });
 
+    // Lọc sản phẩm theo isPromotion nếu được yêu cầu
+    if (req.query.isPromotion !== undefined) {
+      const isPromotionFilter = req.query.isPromotion === "true";
+      products = products.filter(
+        (product) => product.isPromotion === isPromotionFilter
+      );
+    }
+
+    // Lọc sản phẩm theo isFreeShip nếu được yêu cầu (chỉ lọc nếu isFreeShip được cung cấp)
+    if (req.query.isFreeShip !== undefined) {
+      const isFreeShipFilter = req.query.isFreeShip === "true";
+      products = products.filter(
+        (product) => product.isFreeShip === isFreeShipFilter
+      );
+    }
+
     // Sắp xếp sản phẩm nếu có tham số _sort
     if (sortField) {
       products.sort((a, b) => {
